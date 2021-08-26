@@ -1,0 +1,27 @@
+{
+  "name": "social-net-mongo",
+  "version": "1.0.0",
+  "description": "Challenge 18: NoSQL",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server",
+    "dev": "nodemon server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/smalone9/social-net-mongo.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/smalone9/social-net-mongo/issues"
+  },
+  "homepage": "https://github.com/smalone9/social-net-mongo#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "mongoose": "^6.0.1",
+    "morgan": "^1.10.0"
+  }
+}
