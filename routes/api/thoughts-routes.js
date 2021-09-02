@@ -1,13 +1,18 @@
 const router = require("express").Router();
 const {
-  addFriend,
-  deleteFriend,
-} = require("../../controllers/thought-controller");
+  getAllThoughts,
+  getThoughtById,
+  createThought,
+} = require("../../controllers/thoughts-controller");
 
-// /api/comments/<userId>
-router.route("/:userId").post(addFriend);
+// /api/Thoughts
+router.route("/").get(getAllThoughts).post(createThought);
 
-// /api/comments/<friendId>/<commentId>/<replyId>
-router.route("/:userId/:friends/:friendId").delete(deleteFriend);
+// /api/Thoughts/:id
+router
+  .route("/:id")
+  .get(getThoughtById)
+  .put(updateThought)
+  .delete(deleteThought);
 
 module.exports = router;
