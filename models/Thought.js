@@ -1,4 +1,5 @@
 const { model, Schema } = require("mongoose");
+const dateFormat = require("../../../utils/dateFormat");
 
 // create a new schema
 const thoughtSchema = new Schema({
@@ -10,7 +11,13 @@ const thoughtSchema = new Schema({
   createdAt: {
     type: Date,
     default: Date.now,
+    get: (createdAtVal) => dateFormat(createdAtVal),
   },
+  username: {
+    type: String,
+    required: true,
+  },
+  reactions: [{ type: mongoose.Schema.ObjectId, ref: "Thought" }],
 });
 
-module.exports = model("User", userSchema);
+module.exports = model("Thought", thoughtSchema);
