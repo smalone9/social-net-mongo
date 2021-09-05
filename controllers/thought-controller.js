@@ -1,10 +1,11 @@
 const { User, Thought } = require("../models");
 
-const ThoughtController = {
+const thoughtController = {
   getAllThoughts: (req, res) => {
     Thought.find({})
-      .populate("thought user Reaction")
-      .then((dbThoughtData) => res.json(dbThoughtData))
+      .select("-__v")
+      .sort({ _id: -1 })
+      .then((data) => res.json(data))
       .catch((err) => {
         console.log(err);
         res.sendStatus(400);
@@ -12,10 +13,10 @@ const ThoughtController = {
   },
 
   // get one Thought by id
-  getThoughtById({ params }, res) {
+  getThoughtById(req, res) {
     Thought.findOne({ _id: params.id })
       .populate({
-        path: "thoughts",
+        path: "thought",
         select: "-__v",
       })
       .populate({
@@ -23,18 +24,39 @@ const ThoughtController = {
         select: "-__v",
       })
       .select("-__v")
-      .then((dbThoughtData) => res.json(dbThoughtData))
+      .then((data) => {
+        console.log(data);
+        if (!data) {
+          res.status(404).json({ message: "No thought found with this ID!" });
+        }
+        res.json(data);
+      })
       .catch((err) => {
         console.log(err);
-        res.sendStatus(400);
+        res.status(400).json(err);
       });
   },
 
   // createThought
-  createThought({ body }, res) {
-    Thought.create(body)
-      .then((dbThoughtData) => res.json(dbThoughtData))
-      .catch((err) => res.json(err));
+  createThought(req, res) {
+    Thought.create(req.body)
+      .then(({ __id }) => {
+        return User.findOneAndUpdate(
+          { _id: req.params.userId },
+          { $push: { thoughts: __id } },
+          { new: true }
+        );
+      })
+      .then((data) => {
+        if (!data) {
+          return res.status(404).json({ message: "No user matching this ID!" });
+        }
+        res.json(data);
+      })
+      .catch((err) => {
+        console.log(err);
+        res.status(400).json();
+      });
   },
 
   // update Thought by id
@@ -43,28 +65,51 @@ const ThoughtController = {
       new: true,
       runValidators: true,
     })
-      .then((dbThoughtData) => {
-        if (!dbThoughtData) {
+      .then((data) => {
+        if (!data) {
           res.status(404).json({ message: "No Thought found with this id!" });
           return;
         }
-        res.json(dbThoughtData);
+        res.json(data);
       })
-      .catch((err) => res.json(err));
+      .catch((err) => {
+        console.log(err);
+      });
   },
 
   // delete Thought
   deleteThought({ params }, res) {
     Thought.findOneAndDelete({ _id: params.id })
-      .then((dbThoughtData) => res.json(dbThoughtData))
-      .catch((err) => res.json(err));
+      .then((data) => {
+        if (!data) {
+          return res
+            .status(404)
+            .json({ message: "No thought found with this id!" });
+        }
+        return User.findOneAndUpdate(
+          { _id: params.userId },
+          { $pull: { thoughts: params.thoughtId } },
+          { new: true }
+        );
+      })
+      .then((data) => {
+        if (!data) {
+          res.status(404).json({ message: "No user found with this id!" });
+          return;
+        }
+        res.json(true);
+      })
+      .catch((err) => {
+        console.log(err);
+        res.status(400).json(err);
+      });
   },
 
-  createReaction({ params }, res) {
+  createReaction({ params, body }, res) {
     Thought.findOneAndUpdate(
-      { _id: params.id },
-      { $addToSet: { reactions: params.id } },
-      { new: true }
+      { _id: params.thoughtId },
+      { $addToSet: { reactions: body } },
+      { new: true, runValidation: true }
     )
       .then((data) => {
         if (!data) {
@@ -78,10 +123,10 @@ const ThoughtController = {
       });
   },
 
-  deleteReaction({ params }, res) {
+  deleteReaction({ params, body }, res) {
     Thought.findOneAndUpdate(
-      { _id: params.ThoughtId },
-      { $pull: { reactions: params.ThoughtId } },
+      { _id: params.thoughtId },
+      { $pull: { reactions: params.thoughtId } },
       { new: true }
     )
       .then((data) => res.json(data))

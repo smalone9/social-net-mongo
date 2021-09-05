@@ -3,11 +3,16 @@ const { User, Thought } = require("../models");
 const userController = {
   getAllUsers: (req, res) => {
     User.find({})
-      .populate("thought friend")
-      .then((dbUserData) => res.json(dbUserData))
+      .populate({
+        path: "thoughts",
+        select: "-__v",
+      })
+      .select("-__v")
+      .sort({ _id: -1 })
+      .then((data) => res.json(data))
       .catch((err) => {
         console.log(err);
-        res.sendStatus(400);
+        res.status(400).json(err);
       });
   },
 
@@ -18,19 +23,29 @@ const userController = {
         path: "thoughts",
         select: "-__v",
       })
+      .populate({
+        path: "friends",
+        select: "-__v",
+      })
       .select("-__v")
-      .then((dbUserData) => res.json(dbUserData))
+      .then((data) => {
+        console.log(data);
+        if (!data) {
+          res.status(404).json({ message: "No user matching ID!" });
+        }
+        res.json(data);
+      })
       .catch((err) => {
         console.log(err);
-        res.sendStatus(400);
+        res.status(400).json(err);
       });
   },
 
   // createUser
   createUser({ body }, res) {
     User.create(body)
-      .then((dbUserData) => res.json(dbUserData))
-      .catch((err) => res.json(err));
+      .then((data) => res.json(data))
+      .catch((err) => res.status(400).json(err));
   },
 
   // update User by id
@@ -39,39 +54,49 @@ const userController = {
       new: true,
       runValidators: true,
     })
-      .then((dbUserData) => {
-        if (!dbUserData) {
+      .then((data) => {
+        if (!data) {
           res.status(404).json({ message: "No User found with this id!" });
           return;
         }
-        res.json(dbUserData);
+        res.json(data);
       })
-      .catch((err) => res.json(err));
+      .catch((err) => res.status(400).json(err));
   },
 
   // delete User
   deleteUser({ params }, res) {
     User.findOneAndDelete({ _id: params.id })
-      .then((dbUserData) => res.json(dbUserData))
+      .then((data) => res.json(data))
       .catch((err) => res.json(err));
   },
 
   createFriend({ params }, res) {
     User.findOneAndUpdate(
-      { _id: params.id },
+      { _id: params.userId },
       { $addToSet: { friends: params.id } },
       { new: true }
-    )
-      .then((data) => {
-        if (!data) {
-          res.status(404).json({ message: "No friend matching ID!" });
-        }
-        res.json(data);
-      })
-      .catch((err) => {
-        console.log(err);
-        res.status(500).json(err);
-      });
+    ).then((data) => {
+      if (!data) {
+        res.status(404).json({ message: "No friend matching ID!" });
+        return;
+      }
+      User.findOneAndUpdate(
+        { _id: params.friendId },
+        { $addToSet: { friends: params.userId } },
+        { new: true }
+      )
+        .then((data) => {
+          if (!data) {
+            res.status(404).json({ message: "No friend matching ID!" });
+          }
+          res.json(data);
+        })
+        .catch((err) => {
+          console.log(err);
+          res.status(500).json(err);
+        });
+    });
   },
 
   deleteFriend({ params }, res) {
